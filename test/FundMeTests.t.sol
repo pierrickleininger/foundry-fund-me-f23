@@ -4,16 +4,19 @@ pragma solidity ^0.8.18;
 
 import {Test, console} from "forge-std/Test.sol";
 import {FundMe} from "../src/FundMe.sol";
+import {DeployFundMe} from "../script/DeployFundMe.s.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract FundMeTests is Test {
     using Strings for address;
 
+    DeployFundMe deployFundMe;
     FundMe fundMe;
 
     function setUp() external {
         console.log("Initialize FundMe contract");
-        fundMe = new FundMe();
+        deployFundMe = new DeployFundMe();
+        fundMe = deployFundMe.run();
     }
 
     function testMinimumIsFive() public view {
@@ -32,6 +35,11 @@ contract FundMeTests is Test {
         console.log(
             string.concat("FundMeTests : ", address(this).toHexString())
         );
-        assertEq(fundMe.i_owner(), address(this));
+        assertEq(fundMe.i_owner(), msg.sender);
+    }
+
+    function testVersionIsAccurate() public view {
+        uint256 version = fundMe.getVersion();
+        assertEq(version, 4);
     }
 }
