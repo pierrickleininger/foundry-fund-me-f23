@@ -13,10 +13,16 @@ contract FundMeTests is Test {
     DeployFundMe deployFundMe;
     FundMe fundMe;
 
+    address private immutable USER_ADDRESS = makeAddr("user");
+    uint256 private constant USER_INITIAL_BALANCE = 1 ether;
+    uint256 private constant INSUFFICIENT_FUND_AMOUNT = 0.001 ether;
+    uint256 private constant FUND_AMOUNT = 0.1 ether;
+
     function setUp() external {
         console.log("Initialize FundMe contract");
         deployFundMe = new DeployFundMe();
         fundMe = deployFundMe.run();
+        deal(USER_ADDRESS, USER_INITIAL_BALANCE);
     }
 
     function testMinimumIsFive() public view {
@@ -27,7 +33,7 @@ contract FundMeTests is Test {
     function testOwnerIsSender() public view {
         console.log("Test if contract owner is equal to message sender");
         console.log(
-            string.concat("Contract owner : ", fundMe.i_owner().toHexString())
+            string.concat("Contract owner : ", fundMe.getOwner().toHexString())
         );
         console.log(
             string.concat("Message sender : ", msg.sender.toHexString())
@@ -35,11 +41,25 @@ contract FundMeTests is Test {
         console.log(
             string.concat("FundMeTests : ", address(this).toHexString())
         );
-        assertEq(fundMe.i_owner(), msg.sender);
+        assertEq(fundMe.getOwner(), msg.sender);
     }
 
     function testVersionIsAccurate() public view {
         uint256 version = fundMe.getVersion();
         assertEq(version, 4);
+    }
+
+    function testFundFailsIfLessThanFiveDollars() public {
+        vm.expectRevert();
+        fundMe.fund{value: INSUFFICIENT_FUND_AMOUNT}();
+    }
+
+    function testFundUpdatesFundedDataStructure() public {
+        vm.prank(USER_ADDRESS);
+        fundMe.fund{value: FUND_AMOUNT}();
+        uint256 fundedAmount = fundMe.getAddressToAmountFunded(USER_ADDRESS);
+        assertEq(FUND_AMOUNT, fundedAmount);
+        address funder = fundMe.getFunder(0);
+        assertEq(USER_ADDRESS, funder);
     }
 }
